@@ -26,13 +26,9 @@ jobs:
 
       - name: Build Release AAB
         run: ./gradlew bundleRelease
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
       - name: Build Release APK
         run: ./gradlew assembleRelease
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
