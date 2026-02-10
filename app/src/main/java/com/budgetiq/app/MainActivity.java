@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String BASE_URL = "https://optioninsights.in/welcome/";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int CAMERA_PERMISSION_REQUEST = 1002;
+    private static final int SMS_PERMISSION_REQUEST = 1003;
 
     private WebView webView;
     private ProgressBar progressBar;
@@ -116,6 +117,9 @@ public class MainActivity extends AppCompatActivity {
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
+        // Add SMS bridge for JavaScript access
+        webView.addJavascriptInterface(new SmsBridge(this), "BudgetIQSms");
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String url, Bitmap favicon) {
@@ -127,6 +131,10 @@ public class MainActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.GONE);
                 swipeRefresh.setRefreshing(false);
                 hideOffline();
+
+                // Notify WebView that native SMS bridge is available
+                view.evaluateJavascript(
+                        "if(window.onNativeBridgeReady) window.onNativeBridgeReady();", null);
             }
 
             @Override
@@ -204,6 +212,30 @@ public class MainActivity extends AppCompatActivity {
         adView.loadAd(adRequest);
     }
 
+    /**
+     * Called from SmsBridge when JavaScript requests SMS permission
+     */
+    public void requestSmsPermissionFromJs() {
+        runOnUiThread(() -> {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS},
+                        SMS_PERMISSION_REQUEST);
+            } else {
+                // Already granted, notify WebView
+                notifySmsPermissionGranted();
+            }
+        });
+    }
+
+    private void notifySmsPermissionGranted() {
+        if (webView != null) {
+            webView.evaluateJavascript(
+                    "if(window.onSmsPermissionGranted) window.onSmsPermissionGranted();", null);
+        }
+    }
+
     private boolean isNetworkAvailable() {
         ConnectivityManager cm = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
         NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
@@ -266,6 +298,16 @@ public class MainActivity extends AppCompatActivity {
             } catch (Exception e) {
                 filePathCallback.onReceiveValue(null);
                 filePathCallback = null;
+            }
+        } else if (requestCode == SMS_PERMISSION_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                notifySmsPermissionGranted();
+            } else {
+                // Permission denied, notify WebView
+                if (webView != null) {
+                    webView.evaluateJavascript(
+                            "if(window.onSmsPermissionDenied) window.onSmsPermissionDenied();", null);
+                }
             }
         }
     }
