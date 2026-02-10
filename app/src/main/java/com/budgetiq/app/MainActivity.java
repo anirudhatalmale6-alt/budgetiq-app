@@ -38,7 +38,7 @@ import com.google.android.gms.ads.MobileAds;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String BASE_URL = "https://optioninsights.in/ai-coach/";
+    private static final String BASE_URL = "https://optioninsights.in/dashboard/";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int CAMERA_PERMISSION_REQUEST = 1002;
 
