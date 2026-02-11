@@ -11,6 +11,7 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieManager;
@@ -41,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String BASE_URL = "https://optioninsights.in/welcome/";
     private static final int FILE_CHOOSER_REQUEST = 1001;
     private static final int CAMERA_PERMISSION_REQUEST = 1002;
-    private static final int SMS_PERMISSION_REQUEST = 1003;
+    private static final int NOTIFICATION_PERMISSION_REQUEST = 1004;
 
     private WebView webView;
     private ProgressBar progressBar;
@@ -117,8 +118,10 @@ public class MainActivity extends AppCompatActivity {
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
-        // Add SMS bridge for JavaScript access
-        webView.addJavascriptInterface(new SmsBridge(this), "BudgetIQSms");
+        // Add JS bridges
+        // NotificationBridge uses same JS name "BudgetIQSms" for web compatibility
+        webView.addJavascriptInterface(new NotificationBridge(this), "BudgetIQSms");
+        webView.addJavascriptInterface(new BudgetNotificationHelper(this), "BudgetIQNotify");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -132,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
                 swipeRefresh.setRefreshing(false);
                 hideOffline();
 
-                // Notify WebView that native SMS bridge is available
+                // Notify WebView that native bridges are available
                 view.evaluateJavascript(
                         "if(window.onNativeBridgeReady) window.onNativeBridgeReady();", null);
             }
@@ -213,27 +216,40 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Called from SmsBridge when JavaScript requests SMS permission
+     * Called from NotificationBridge to open notification listener settings
      */
-    public void requestSmsPermissionFromJs() {
+    public void openNotificationListenerSettings() {
         runOnUiThread(() -> {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
-                    != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS},
-                        SMS_PERMISSION_REQUEST);
-            } else {
-                // Already granted, notify WebView
-                notifySmsPermissionGranted();
+            try {
+                Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+                startActivity(intent);
+            } catch (Exception e) {
+                // Fallback to app notification settings
+                try {
+                    Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                    intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                    startActivity(intent);
+                } catch (Exception e2) {
+                    // Ignore
+                }
             }
         });
     }
 
-    private void notifySmsPermissionGranted() {
-        if (webView != null) {
-            webView.evaluateJavascript(
-                    "if(window.onSmsPermissionGranted) window.onSmsPermissionGranted();", null);
-        }
+    /**
+     * Called from BudgetNotificationHelper to request POST_NOTIFICATIONS permission (Android 13+)
+     */
+    public void requestNotificationPermissionFromJs() {
+        runOnUiThread(() -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this,
+                            new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                            NOTIFICATION_PERMISSION_REQUEST);
+                }
+            }
+        });
     }
 
     private boolean isNetworkAvailable() {
@@ -299,15 +315,14 @@ public class MainActivity extends AppCompatActivity {
                 filePathCallback.onReceiveValue(null);
                 filePathCallback = null;
             }
-        } else if (requestCode == SMS_PERMISSION_REQUEST) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                notifySmsPermissionGranted();
-            } else {
-                // Permission denied, notify WebView
-                if (webView != null) {
-                    webView.evaluateJavascript(
-                            "if(window.onSmsPermissionDenied) window.onSmsPermissionDenied();", null);
-                }
+        } else if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
+            // Notification permission result - notify WebView
+            if (webView != null) {
+                boolean granted = grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                webView.evaluateJavascript(
+                        "if(window.onNotificationPermissionResult) window.onNotificationPermissionResult(" + granted + ");",
+                        null);
             }
         }
     }
@@ -316,6 +331,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         if (adView != null) adView.resume();
+
+        // When returning from notification listener settings, notify WebView
+        if (webView != null) {
+            webView.evaluateJavascript(
+                    "if(window.onSmsPermissionGranted) window.onSmsPermissionGranted();", null);
+        }
     }
 
     @Override
