@@ -52,13 +52,43 @@ public class TransactionNotificationListener extends NotificationListenerService
             "(?:avl\\.?\\s*bal|available\\s*balance|bal(?:ance)?)[:\\s]*(?:INR|Rs\\.?|₹)?\\s*([\\d,]+\\.?\\d*)",
             Pattern.CASE_INSENSITIVE);
 
-    // Known bank/financial app packages
-    private static final String[] BANK_PACKAGES = {
+    // Messaging app packages (SMS apps)
+    private static final String[] SMS_PACKAGES = {
             "com.google.android.apps.messaging",  // Google Messages
             "com.samsung.android.messaging",       // Samsung Messages
             "com.android.mms",                     // Default SMS
             "com.sonyericsson.conversations",      // Sony Messages
             "com.oneplus.mms",                     // OnePlus Messages
+            "com.xiaomi.mms",                      // Xiaomi Messages
+            "com.miui.mms",                        // MIUI Messages
+            "com.oppo.mms",                        // Oppo Messages
+            "com.vivo.mms",                        // Vivo Messages
+            "com.realme.mms",                      // Realme Messages
+            "com.asus.mms",                        // Asus Messages
+            "org.thoughtcrime.securesms",          // Signal
+    };
+
+    // Known Indian bank/fintech app packages (send transaction notifications directly)
+    private static final String[] BANK_APP_PACKAGES = {
+            "com.csam.icici.bank.imobile",         // ICICI iMobile
+            "com.snapwork.hdfc",                   // HDFC Mobile Banking
+            "com.sbi.lotusintouch",                // SBI YONO
+            "com.axis.mobile",                     // Axis Mobile
+            "com.msf.koenig.bank.kotak",           // Kotak Mobile Banking
+            "com.bob.bank.bobmworld",              // BOB World
+            "com.pnb.ebb",                         // PNB ONE
+            "com.canarabank.mobility",             // Canara ai1
+            "net.one97.paytm",                     // Paytm
+            "com.phonepe.app",                     // PhonePe
+            "com.google.android.apps.nbu.paisa.user", // Google Pay
+            "in.amazon.mShop.android.shopping",    // Amazon
+            "in.org.npci.upiapp",                  // BHIM
+            "com.whatsapp",                        // WhatsApp (payment alerts)
+            "com.bajajfinserv",                    // Bajaj Finserv
+            "com.lendingkart.finance",             // Lendingkart
+            "com.cred.android",                    // CRED
+            "com.freecharge.android",              // FreeCharge
+            "com.dreamplug.androidapp",            // CRED
     };
 
     // Known bank sender keywords in notification title
@@ -111,10 +141,19 @@ public class TransactionNotificationListener extends NotificationListenerService
     }
 
     private boolean isMessagingApp(String packageName) {
-        for (String pkg : BANK_PACKAGES) {
+        if (packageName == null) return false;
+        // Check SMS apps
+        for (String pkg : SMS_PACKAGES) {
             if (pkg.equals(packageName)) return true;
         }
-        return false;
+        // Check bank/fintech apps
+        for (String pkg : BANK_APP_PACKAGES) {
+            if (pkg.equals(packageName)) return true;
+        }
+        // Also accept any app with bank/finance/pay in package name
+        String lower = packageName.toLowerCase();
+        return lower.contains("bank") || lower.contains("finserv") || lower.contains("finance")
+                || lower.contains(".pay") || lower.contains("wallet") || lower.contains("upi");
     }
 
     private boolean isBankTransaction(String title, String body) {
