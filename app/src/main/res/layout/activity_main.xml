@@ -81,11 +81,5 @@
 
     </FrameLayout>
 
-    <LinearLayout
-        android:id="@+id/adContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="center" />
 
 </LinearLayout>

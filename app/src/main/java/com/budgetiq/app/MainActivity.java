@@ -32,9 +32,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
 
 public class MainActivity extends AppCompatActivity {
@@ -49,7 +46,10 @@ public class MainActivity extends AppCompatActivity {
     private SwipeRefreshLayout swipeRefresh;
     private LinearLayout offlineLayout;
     private ValueCallback<Uri[]> filePathCallback;
-    private AdView adView;
+
+    // Billing & Ads managers
+    private BillingManager billingManager;
+    private AdManager adManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,8 +65,9 @@ public class MainActivity extends AppCompatActivity {
         offlineLayout = findViewById(R.id.offlineLayout);
         Button retryButton = findViewById(R.id.retryButton);
 
-        // Setup banner ad
-        setupBannerAd();
+        // Initialize billing and ads
+        billingManager = new BillingManager(this);
+        adManager = new AdManager(this);
 
         // Setup WebView
         setupWebView();
@@ -98,6 +99,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Expose WebView reference for JS bridges
+     */
+    public WebView getWebView() {
+        return webView;
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     private void setupWebView() {
         WebSettings settings = webView.getSettings();
@@ -112,16 +120,17 @@ public class MainActivity extends AppCompatActivity {
         settings.setMediaPlaybackRequiresUserGesture(false);
         settings.setJavaScriptCanOpenWindowsAutomatically(true);
         settings.setSupportMultipleWindows(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " BudgetIQ/1.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " BudgetIQ/2.0");
 
         // Enable cookies
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
 
         // Add JS bridges
-        // NotificationBridge uses same JS name "BudgetIQSms" for web compatibility
         webView.addJavascriptInterface(new NotificationBridge(this), "BudgetIQSms");
         webView.addJavascriptInterface(new BudgetNotificationHelper(this), "BudgetIQNotify");
+        webView.addJavascriptInterface(billingManager, "BudgetIQBilling");
+        webView.addJavascriptInterface(adManager, "BudgetIQAds");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -203,18 +212,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void setupBannerAd() {
-        adView = new AdView(this);
-        adView.setAdUnitId("ca-app-pub-6353903215132082/5260206124");
-        adView.setAdSize(AdSize.BANNER);
-
-        LinearLayout adContainer = findViewById(R.id.adContainer);
-        adContainer.addView(adView);
-
-        AdRequest adRequest = new AdRequest.Builder().build();
-        adView.loadAd(adRequest);
-    }
-
     /**
      * Called from NotificationBridge to open notification listener settings
      */
@@ -224,7 +221,6 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
                 startActivity(intent);
             } catch (Exception e) {
-                // Fallback to app notification settings
                 try {
                     Intent intent = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
                     intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
@@ -306,7 +302,6 @@ public class MainActivity extends AppCompatActivity {
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == CAMERA_PERMISSION_REQUEST && filePathCallback != null) {
-            // Try to open file chooser regardless of permission result
             try {
                 Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                 intent.setType("*/*");
@@ -316,7 +311,6 @@ public class MainActivity extends AppCompatActivity {
                 filePathCallback = null;
             }
         } else if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
-            // Notification permission result - notify WebView
             if (webView != null) {
                 boolean granted = grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED;
@@ -330,9 +324,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (adView != null) adView.resume();
-
-        // When returning from notification listener settings, notify WebView
         if (webView != null) {
             webView.evaluateJavascript(
                     "if(window.onSmsPermissionGranted) window.onSmsPermissionGranted();", null);
@@ -340,14 +331,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onPause() {
-        if (adView != null) adView.pause();
-        super.onPause();
-    }
-
-    @Override
     protected void onDestroy() {
-        if (adView != null) adView.destroy();
+        if (billingManager != null) billingManager.destroy();
+        if (adManager != null) adManager.destroy();
         if (webView != null) webView.destroy();
         super.onDestroy();
     }
