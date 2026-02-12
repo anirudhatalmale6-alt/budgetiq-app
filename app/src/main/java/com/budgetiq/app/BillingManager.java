@@ -197,7 +197,7 @@ public class BillingManager implements PurchasesUpdatedListener {
                     productDetails.getSubscriptionOfferDetails();
             if (offers != null && !offers.isEmpty()) {
                 List<ProductDetails.PricingPhase> phases =
-                        offers.get(0).getPricingDetails().getPricingPhaseList();
+                        offers.get(0).getPricingPhases().getPricingPhaseList();
                 if (!phases.isEmpty()) {
                     ProductDetails.PricingPhase phase = phases.get(0);
                     info.put("price", phase.getFormattedPrice());
