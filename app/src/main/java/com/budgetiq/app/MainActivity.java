@@ -38,7 +38,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String BASE_URL = "https://optioninsights.in/welcome/";
     private static final int FILE_CHOOSER_REQUEST = 1001;
-    private static final int CAMERA_PERMISSION_REQUEST = 1002;
     private static final int NOTIFICATION_PERMISSION_REQUEST = 1004;
 
     private WebView webView;
@@ -192,14 +191,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 filePathCallback = callback;
 
-                // Check camera permission if needed
-                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(MainActivity.this,
-                            new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST);
-                    return true;
-                }
-
                 Intent intent = fileChooserParams.createIntent();
                 try {
                     startActivityForResult(intent, FILE_CHOOSER_REQUEST);
@@ -301,16 +292,7 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_PERMISSION_REQUEST && filePathCallback != null) {
-            try {
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("*/*");
-                startActivityForResult(intent, FILE_CHOOSER_REQUEST);
-            } catch (Exception e) {
-                filePathCallback.onReceiveValue(null);
-                filePathCallback = null;
-            }
-        } else if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST) {
             if (webView != null) {
                 boolean granted = grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED;

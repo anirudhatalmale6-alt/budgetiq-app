@@ -28,10 +28,8 @@ public class AdManager {
     private static final String TAG = "AdManager";
 
     // Ad Unit IDs - client's real IDs (same app ID: ca-app-pub-6353903215132082)
-    // These need to be created in AdMob console. Using placeholder format for now.
-    // Client will replace with actual unit IDs from their AdMob account.
-    private static final String INTERSTITIAL_AD_UNIT = "ca-app-pub-6353903215132082/INTERSTITIAL_ID";
-    private static final String REWARDED_AD_UNIT = "ca-app-pub-6353903215132082/REWARDED_ID";
+    private static final String INTERSTITIAL_AD_UNIT = "ca-app-pub-6353903215132082/4616082565";
+    private static final String REWARDED_AD_UNIT = "ca-app-pub-6353903215132082/REWARDED_ID"; // TODO: client to provide
 
     // Test ad unit IDs (used during development)
     private static final String TEST_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712";
