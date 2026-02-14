@@ -90,6 +90,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Re-schedule any active reminders
+        ReminderScheduler.scheduleAll(this);
+
         // Load URL
         if (isNetworkAvailable()) {
             webView.loadUrl(BASE_URL);
@@ -128,6 +131,7 @@ public class MainActivity extends AppCompatActivity {
         // Add JS bridges
         webView.addJavascriptInterface(new NotificationBridge(this), "BudgetIQSms");
         webView.addJavascriptInterface(new BudgetNotificationHelper(this), "BudgetIQNotify");
+        webView.addJavascriptInterface(new ReminderScheduler(this), "BudgetIQReminder");
         webView.addJavascriptInterface(billingManager, "BudgetIQBilling");
         webView.addJavascriptInterface(adManager, "BudgetIQAds");
 
