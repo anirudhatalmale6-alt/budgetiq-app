@@ -10,8 +10,8 @@ android {
         applicationId "com.budgetiq.app"
         minSdk 24
         targetSdk 35
-        versionCode 7
-        versionName "2.2.0"
+        versionCode 8
+        versionName "2.3.0"
     }
 
     signingConfigs {
@@ -45,10 +45,11 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.webkit:webkit:1.10.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.lifecycle:lifecycle-process:2.7.0'
 
     // Google Play Billing v7 (subscriptions)
     implementation 'com.android.billingclient:billing:7.1.1'
 
-    // AdMob (interstitial + rewarded ads)
+    // AdMob (interstitial + rewarded ads + app open)
     implementation 'com.google.android.gms:play-services-ads:23.6.0'
 }

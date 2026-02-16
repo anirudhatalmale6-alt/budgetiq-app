@@ -27,16 +27,17 @@ public class AdManager {
 
     private static final String TAG = "AdManager";
 
-    // Ad Unit IDs - client's real IDs (same app ID: ca-app-pub-6353903215132082)
+    // Ad Unit IDs - client's real IDs (app ID: ca-app-pub-6353903215132082~5260206124)
     private static final String INTERSTITIAL_AD_UNIT = "ca-app-pub-6353903215132082/4616082565";
-    private static final String REWARDED_AD_UNIT = "ca-app-pub-6353903215132082/REWARDED_ID"; // TODO: client to provide
+    private static final String REWARDED_AD_UNIT = "ca-app-pub-6353903215132082/6590994194";
+    private static final String REWARDED_INTERSTITIAL_AD_UNIT = "ca-app-pub-6353903215132082/5336797865";
 
     // Test ad unit IDs (used during development)
     private static final String TEST_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712";
     private static final String TEST_REWARDED = "ca-app-pub-3940256099942544/5224354917";
 
-    // Use test ads during development, switch to real for production
-    private static final boolean USE_TEST_ADS = true;
+    // Production mode - using real ad unit IDs
+    private static final boolean USE_TEST_ADS = false;
 
     private final MainActivity activity;
     private InterstitialAd interstitialAd;
