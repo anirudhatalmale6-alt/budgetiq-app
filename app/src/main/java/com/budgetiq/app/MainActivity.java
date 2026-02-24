@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     // Billing & Ads managers
     private BillingManager billingManager;
     private AdManager adManager;
+    private boolean swipeRefreshAllowed = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,7 +72,7 @@ public class MainActivity extends AppCompatActivity {
         // Setup WebView
         setupWebView();
 
-        // Swipe to refresh
+        // Swipe to refresh - only when WebView is at the very top
         swipeRefresh.setColorSchemeColors(0xFF17C8D8, 0xFF7C3AED);
         swipeRefresh.setOnRefreshListener(() -> {
             if (isNetworkAvailable()) {
@@ -81,6 +82,20 @@ public class MainActivity extends AppCompatActivity {
                 showOffline();
             }
         });
+        // Disable pull-to-refresh when page has inner scrollable content (overflow:auto divs)
+        // The web page can call window.BudgetIQSwipe.setEnabled(false) to disable
+        webView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+            swipeRefresh.setEnabled(scrollY == 0 && swipeRefreshAllowed);
+        });
+        webView.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface
+            public void setEnabled(boolean enabled) {
+                runOnUiThread(() -> {
+                    swipeRefreshAllowed = enabled;
+                    swipeRefresh.setEnabled(enabled);
+                });
+            }
+        }, "BudgetIQSwipe");
 
         // Retry button
         retryButton.setOnClickListener(v -> {
